@@ -1,26 +1,251 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-ink: #0c0c0f;
+  --color-onyx: #141418;
+  --color-graphite: #26262b;
+  --color-smoke: #3a3a41;
+  --color-champagne: #c9a878;
+  --color-gold-light: #e6cfa4;
+  --color-ivory: #f3eee5;
+  --color-bronze: #8a6b52;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), ui-serif, Georgia, serif;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --animate-fade-in: fade-in 0.3s ease-out both;
+  --animate-fade-out: fade-out 0.25s ease-in both;
+  --animate-sheet-up: sheet-up 0.45s var(--ease-sheet) both;
+  --animate-sheet-down: sheet-down 0.3s var(--ease-sheet) both;
+  --animate-drawer-in: drawer-in 0.45s var(--ease-sheet) both;
+  --animate-drawer-out: drawer-out 0.3s var(--ease-sheet) both;
+  --animate-rise: rise 0.8s var(--ease-out-expo) both;
+  --animate-toast-in: toast-in 0.45s var(--ease-out-expo) both;
+  --animate-bump: bump 0.45s var(--ease-out-expo);
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes sheet-down { from { transform: translateY(var(--drag, 0px)); } to { transform: translateY(100%); } }
+  @keyframes drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  @keyframes drawer-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
   }
 }
 
+/* ---------- Base ---------- */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  background: var(--color-ink);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-champagne);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-champagne);
+  outline-offset: 2px;
+}
+
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* ---------- Utilities ---------- */
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Space for the mobile tab bar (64px + safe area) */
+@utility pb-tabbar {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
+@utility pressable {
+  transition: transform 0.18s var(--ease-out-expo), background-color 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+@utility skeleton {
+  background: linear-gradient(90deg, var(--color-onyx) 0%, var(--color-graphite) 50%, var(--color-onyx) 100%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Soft champagne hairline for premium surfaces */
+@utility hairline {
+  border: 1px solid color-mix(in srgb, var(--color-ivory) 8%, transparent);
+}
+
+@layer components {
+.eyebrow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-champagne);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn-gold,
+.btn-outline,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 3.25rem;
+  padding: 0 1.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+  transition: transform 0.18s var(--ease-out-expo), background-color 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.btn-gold:active,
+.btn-outline:active,
+.btn-ghost:active {
+  transform: scale(0.97);
+}
+
+.btn-gold {
+  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-champagne) 55%, #b89262 100%);
+  color: var(--color-ink);
+  box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--color-champagne) 55%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+@media (hover: hover) {
+  .btn-gold:hover {
+    box-shadow: 0 14px 36px -10px color-mix(in srgb, var(--color-champagne) 75%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+}
+.btn-gold:disabled,
+.btn-gold[aria-disabled="true"] {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  border: 1px solid color-mix(in srgb, var(--color-champagne) 45%, transparent);
+  color: var(--color-ivory);
+  background: color-mix(in srgb, var(--color-ivory) 3%, transparent);
+}
+@media (hover: hover) {
+  .btn-outline:hover {
+    border-color: var(--color-champagne);
+    color: var(--color-champagne);
+  }
+}
+
+.btn-ghost {
+  color: var(--color-ivory);
+  background: color-mix(in srgb, var(--color-ivory) 7%, transparent);
+}
+@media (hover: hover) {
+  .btn-ghost:hover {
+    background: color-mix(in srgb, var(--color-ivory) 12%, transparent);
+  }
+}
+
+/* ---------- Form fields ---------- */
+
+.field {
+  width: 100%;
+  background: var(--color-onyx);
+  border: 1px solid var(--color-graphite);
+  border-radius: 0.875rem;
+  padding: 0.8rem 1rem;
+  /* 16px prevents iOS zoom-on-focus */
+  font-size: 1rem;
+  color: var(--color-ivory);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+@media (min-width: 768px) {
+  .field {
+    font-size: 0.9rem;
+  }
+}
+.field::placeholder {
+  color: color-mix(in srgb, var(--color-ivory) 38%, transparent);
+}
+.field:focus {
+  border-color: var(--color-champagne);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-champagne) 15%, transparent);
+}
+
+} /* end @layer components */
+
+/* Select dropdown (components/ui/select.tsx) */
+@keyframes select-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- Motion preferences ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
