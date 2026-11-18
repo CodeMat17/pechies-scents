@@ -133,7 +133,7 @@ Instead of running `yarn deploy` by hand:
 3. Use these settings:
    - **Build command:** `yarn opennextjs-cloudflare build`
    - **Deploy command:** `yarn opennextjs-cloudflare deploy`
-4. Under **Build → Variables and secrets**, add `NEXT_PUBLIC_CONVEX_URL` (production URL) and `NEXT_PUBLIC_WHATSAPP_NUMBER`. Cloudflare can't see your local `.env.production.local`.
+4. Under **Build → Variables and secrets**, add `NEXT_PUBLIC_CONVEX_URL` (production URL), `NEXT_PUBLIC_WHATSAPP_NUMBER` and `NODE_VERSION` = `22`. Cloudflare can't see your local `.env.production.local`.
 
 Convex changes still need `yarn convex deploy` from your machine.
 

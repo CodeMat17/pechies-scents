@@ -1,18 +1,22 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "pechies-scents",
-	"main": ".open-next/worker.js",
-	"compatibility_date": "2026-11-17",
-	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-	"assets": {
-		"directory": ".open-next/assets",
-		"binding": "ASSETS"
-	},
-	"services": [
-		{
-			// Self-reference binding; "service" must match "name" above
-			"binding": "WORKER_SELF_REFERENCE",
-			"service": "pechies-scents"
-		}
-	]
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pechies-scents",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "vars": {
+    "NEXT_PUBLIC_CONVEX_URL": "https://wonderful-goose-297.convex.cloud",
+    "NEXT_PUBLIC_WHATSAPP_NUMBER": "2349064981301",
+  },
+  "services": [
+    {
+      // Self-reference binding; "service" must match "name" above
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "pechies-scents",
+    },
+  ],
 }
