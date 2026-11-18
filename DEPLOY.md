@@ -1,4 +1,4 @@
-# Deploying Pechies Scents to Cloudflare
+# Deploying Pechies Scents to Cloudflare Workers
 
 The site runs on **Cloudflare Workers** through the OpenNext adapter (`@opennextjs/cloudflare`).
 The backend (products, admin login, image upload signing) runs on **Convex**, and images live on **Cloudinary**.
@@ -6,89 +6,119 @@ The backend (products, admin login, image upload signing) runs on **Convex**, an
 Two things get deployed separately:
 
 | What | Where | Command |
-|---|---|---|
+| --- | --- | --- |
 | Backend (`convex/` folder) | Convex | `yarn convex deploy` |
 | Website (everything else) | Cloudflare | `yarn deploy` |
 
-> This project uses **Yarn 1 (classic)**. Yarn 1 has no `dlx` command, so the one-off tool in step 3 runs with `npx`, which comes with Node. Everything else uses `yarn`.
+> This project uses **Yarn 1 (classic)**. Don't use `npm install` (it creates a second lockfile) and don't use `yarn dlx` (Yarn 1 doesn't have it; use `npx`).
+
+Already in the repo, nothing to do: `wrangler.jsonc`, `open-next.config.ts`, the `preview`/`deploy` scripts in `package.json`, `images.unoptimized: true` in `next.config.ts`, and `.open-next` / `.wrangler` in `.gitignore`.
 
 ---
 
-## Part A — One-time setup
+## Environment files: which one is used when
 
-Do this once per machine/project. Skip any step already done.
+Next.js loads env files in this order (**first match wins**):
 
-### 1. Use Yarn (not npm)
-Only one lockfile should exist: `yarn.lock`. If a `package-lock.json` exists:
+| Command | Files read, highest priority first |
+| --- | --- |
+| `yarn dev` | `.env.development.local` → `.env.local` → `.env.development` → `.env` |
+| `yarn preview` / `yarn deploy` (production build) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
+
+**Important:** `.env.local` beats `.env.production`. `npx convex dev` writes your **dev** Convex URL into `.env.local`, so any production value in `.env.production` would be silently overridden and the live site would talk to the dev database.
+
+The fix is to put production values in **`.env.production.local`**. It wins over `.env.local` for builds and is ignored by `yarn dev`.
+
+| File | Used by | Contains |
+| --- | --- | --- |
+| `.env.local` | `yarn dev`, `npx convex dev` | `CONVEX_DEPLOYMENT`, dev `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_WHATSAPP_NUMBER` |
+| `.env.production.local` | `yarn preview`, `yarn deploy` | prod `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_WHATSAPP_NUMBER` |
+
+Both files are git-ignored (`.env*`), so they are never committed. Don't create a plain `.env.production`.
+
+---
+
+## Part A — First deploy (step by step)
+
+### Step 1. Stop the dev servers
+Stop `yarn dev` and `npx convex dev` if they're running (Ctrl+C). On Windows they lock files that the build needs.
+
+### Step 2. Install dependencies
 ```bash
-rm package-lock.json
-rm -rf node_modules
 yarn install
 ```
-Commit `yarn.lock`.
+Only `yarn.lock` should exist. If you see a `package-lock.json`, delete it and run `yarn install` again.
 
-### 2. Create the production Convex backend
+### Step 3. Deploy the Convex backend to production
 ```bash
 yarn convex deploy
 ```
-- Copy the production URL it prints: `https://<name>.convex.cloud`.
-- In the Convex dashboard, switch to the **Production** deployment, go to **Settings → Environment Variables**, and add:
-  - `ADMIN_PASSWORD`
-  - `CLOUDINARY_CLOUD_NAME`
-  - `CLOUDINARY_API_KEY`
-  - `CLOUDINARY_API_SECRET`
+- Answer **yes** when it asks to push to the production deployment.
+- Copy the URL it prints: `https://<prod-name>.convex.cloud`.
 
-### 3. Add the Cloudflare adapter
-```bash
-npx @opennextjs/cloudflare migrate
+Then open the [Convex dashboard](https://dashboard.convex.dev), switch to the **Production** deployment, go to **Settings → Environment Variables**, and add:
+- `ADMIN_PASSWORD`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+(Dev and production have **separate** env vars and **separate** data. The products you added in dev are not in production; add them again from `/dashboard` on the live site.)
+
+### Step 4. Create `.env.production.local`
+In the project root:
 ```
-This command:
-- installs `@opennextjs/cloudflare` and `wrangler`
-- creates `wrangler.jsonc` and `open-next.config.ts`
-- adds `preview` and `deploy` scripts to `package.json`
-- adds `.open-next` to `.gitignore`
-
-Afterwards:
-- If a `package-lock.json` appears, delete it and run `yarn install`.
-- Check that `wrangler.jsonc` and `open-next.config.ts` are in the project root, and that `package.json` has the `preview` and `deploy` scripts. *(For this project they're already done. `migrate` stopped part-way on Windows, so they were created by hand.)*
-- In `wrangler.jsonc`, `"name"` and the `services[0].service` value must both be `pechies-scents`. That name becomes the Worker's name in Cloudflare.
-
-> Image optimisation is already turned off in `next.config.ts` (`images.unoptimized: true`), because Cloudinary handles it. Nothing to do here.
-
-### 4. Create `.env.production`
-Create this file in the project root. It is git-ignored, so it never gets committed.
-```
-NEXT_PUBLIC_CONVEX_URL=https://<your-prod-name>.convex.cloud
+NEXT_PUBLIC_CONVEX_URL=https://<prod-name>.convex.cloud
 NEXT_PUBLIC_WHATSAPP_NUMBER=234XXXXXXXXXX
 ```
-These values are baked into the site at **build time**. If you change one, rebuild and redeploy.
+Use the **production** URL from step 3, not the dev one in `.env.local`. These values are baked in at **build time**, so after changing one, run `yarn deploy` again.
 
-### 5. Log in to Cloudflare
+### Step 5. Log in to Cloudflare
 ```bash
 yarn wrangler login
 ```
+A browser window opens; approve it. Check with `yarn wrangler whoami`.
 
-### 6. Connect the domain (after the first deploy)
-The domain's DNS must be on Cloudflare. If it isn't, add the site in Cloudflare and switch your registrar's nameservers to Cloudflare's.
+### Step 6. Test locally on the Workers runtime (optional, recommended)
+```bash
+yarn preview
+```
+Open http://localhost:8787 and check the home page, a product page and `/dashboard`. Press Ctrl+C to stop.
 
-**Domains & Routes only shows up after `yarn deploy` has run once.** Until then, Workers & Pages says "No projects found" and there is nothing to click. After the first deploy:
+### Step 7. Deploy
+```bash
+yarn deploy
+```
+This builds the site (about 2 minutes) and uploads it. When it finishes it prints the live URL:
+`https://pechies-scents.<your-subdomain>.workers.dev`
 
-1. Go to **Workers & Pages** and click the **pechies-scents** card in the list.
-2. Open the **Settings** tab.
-3. Under **Domains & Routes**, click **+ Add** → **Custom domain**, enter `pechiesscents.com`, and save. Repeat for `www.pechiesscents.com` if you want it too.
+If this is your first Worker, wrangler may ask you to pick a `workers.dev` subdomain. Choose any name.
 
-The sitemap, canonical links and social previews use `SITE_URL` in `lib/store.ts`, so the live domain must match it.
+### Step 8. Connect your domain
+The domain's DNS must be on Cloudflare. If it isn't, go to **Add a domain** in Cloudflare, then change the nameservers at your registrar to the two Cloudflare gives you. Wait until the domain shows **Active**.
+
+Then:
+1. Go to **Workers & Pages** and click **pechies-scents**.
+2. Open **Settings → Domains & Routes**.
+3. Click **+ Add → Custom domain**, enter `pechiesscents.com`, and save.
+4. Repeat for `www.pechiesscents.com` if you want it.
+
+Cloudflare creates the DNS records and SSL certificate automatically (a few minutes).
+
+The sitemap, canonical links and social previews use `SITE_URL` in `lib/store.ts` (`https://pechiesscents.com`). If you use a different domain, change it there and redeploy.
+
+### Step 9. Check the live site
+- Home page shows products (an empty list means production Convex has no products yet; add them in `/dashboard`).
+- Log in to `/dashboard` with the production `ADMIN_PASSWORD`, then upload an image to confirm Cloudinary works.
+- The WhatsApp button opens the right number.
 
 ---
 
-## Part B — Every deploy
+## Part B — Every later deploy
 
 ```bash
 yarn convex deploy   # only if anything in convex/ changed
-yarn preview         # optional: test on the Workers runtime at http://localhost:8787
 yarn deploy          # build + upload the site
 ```
-The site is live at `https://pechies-scents.<subdomain>.workers.dev` and at your custom domain.
 
 Products and the hero image edited in `/dashboard` save straight to Convex and show up on the live site immediately. You don't need to redeploy for those.
 
@@ -99,11 +129,11 @@ Products and the hero image edited in `/dashboard` save straight to Convex and s
 Instead of running `yarn deploy` by hand:
 
 1. Push the repo to GitHub.
-2. In Cloudflare, go to **Workers & Pages → Create → Import a repository** and pick the repo.
+2. In Cloudflare, open **Workers & Pages → pechies-scents → Settings → Build** and connect the GitHub repo (or **Create → Import a repository** if you haven't deployed yet). The Worker name must stay `pechies-scents` to match `wrangler.jsonc`.
 3. Use these settings:
    - **Build command:** `yarn opennextjs-cloudflare build`
    - **Deploy command:** `yarn opennextjs-cloudflare deploy`
-4. Under **Settings → Build → Variables**, add `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_WHATSAPP_NUMBER`. Cloudflare can't see `.env.production`.
+4. Under **Build → Variables and secrets**, add `NEXT_PUBLIC_CONVEX_URL` (production URL) and `NEXT_PUBLIC_WHATSAPP_NUMBER`. Cloudflare can't see your local `.env.production.local`.
 
 Convex changes still need `yarn convex deploy` from your machine.
 
@@ -111,9 +141,11 @@ Convex changes still need `yarn convex deploy` from your machine.
 
 ## Troubleshooting
 
-- **`error Command "dlx" not found`:** you're on Yarn 1. Use `npx` for that command instead.
-- **`EPERM: operation not permitted ... esbuild.exe` during `yarn add`/`install`:** `next dev` or `convex dev` is holding the file open. Stop them, then rerun.
-- **Build fails on Windows:** run the commands inside WSL, or use the auto-deploy option, where Cloudflare builds on Linux.
-- **Site loads but shows no products:** `NEXT_PUBLIC_CONVEX_URL` is missing or points at the dev deployment. Fix it, then rebuild and redeploy.
-- **Dashboard login or image upload fails:** the Convex **production** env vars from step 2 are missing.
-- **"Function not found" errors:** you changed `convex/` but didn't run `yarn convex deploy`.
+- **Live site shows dev products / dev data:** the build used the dev Convex URL. Make sure the production URL is in `.env.production.local` (not `.env.production`, which `.env.local` overrides), then run `yarn deploy` again.
+- **Site loads but shows no products:** production Convex is empty (add products in `/dashboard`) or `NEXT_PUBLIC_CONVEX_URL` is missing.
+- **Dashboard login or image upload fails:** the Convex **production** env vars from step 3 are missing.
+- **"Could not find public function" errors:** you changed `convex/` but didn't run `yarn convex deploy`.
+- **`EPERM: operation not permitted ... esbuild.exe` during install/build:** `yarn dev` or `npx convex dev` is still running. Stop them and retry.
+- **`error Command "dlx" not found`:** you're on Yarn 1. Use `npx` instead.
+- **`Authentication error` from wrangler:** run `yarn wrangler login` again.
+- **Custom domain option is missing:** the Worker only appears in Workers & Pages after the first `yarn deploy`.
