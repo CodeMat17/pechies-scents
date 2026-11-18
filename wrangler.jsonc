@@ -8,6 +8,11 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS",
   },
+  // Custom domains: attached to this Worker on every deploy
+  "routes": [
+    { "pattern": "pechiesscent.com", "custom_domain": true },
+    { "pattern": "www.pechiesscent.com", "custom_domain": true },
+  ],
   "vars": {
     "NEXT_PUBLIC_CONVEX_URL": "https://wonderful-goose-297.convex.cloud",
     "NEXT_PUBLIC_WHATSAPP_NUMBER": "2349064981301",

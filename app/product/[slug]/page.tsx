@@ -24,6 +24,12 @@ export async function generateMetadata({
       url: `${SITE_URL}/product/${p.slug}`,
       images: p.imageUrl ? [{ url: p.imageUrl, alt: p.name }] : undefined,
     },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: p.imageUrl ? [{ url: p.imageUrl, alt: p.name }] : undefined,
+    },
   };
 }
 
