@@ -2,7 +2,7 @@ import type { Doc } from "@/convex/_generated/dataModel";
 
 export type Product = Doc<"products">;
 
-export const SITE_URL = "https://pechiesscents.com";
+export const SITE_URL = "https://pechiesscent.com";
 export const SITE_NAME = "Pe’chies Scents & Accessories";
 export const TAGLINE = "Your Scent. Your Signature.";
 

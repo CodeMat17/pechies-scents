@@ -102,12 +102,12 @@ The domain's DNS must be on Cloudflare. If it isn't, go to **Add a domain** in C
 Then:
 1. Go to **Workers & Pages** and click **pechies-scents**.
 2. Open **Settings → Domains & Routes**.
-3. Click **+ Add → Custom domain**, enter `pechiesscents.com`, and save.
-4. Repeat for `www.pechiesscents.com` if you want it.
+3. Click **+ Add → Custom domain**, enter `pechiesscent.com`, and save.
+4. Repeat for `www.pechiesscent.com` if you want it.
 
 Cloudflare creates the DNS records and SSL certificate automatically (a few minutes).
 
-The sitemap, canonical links and social previews use `SITE_URL` in `lib/store.ts` (`https://pechiesscents.com`). If you use a different domain, change it there and redeploy.
+The sitemap, canonical links and social previews use `SITE_URL` in `lib/store.ts` (`https://pechiesscent.com`). If you use a different domain, change it there and redeploy.
 
 ### Step 9. Check the live site
 - Home page shows products (an empty list means production Convex has no products yet; add them in `/dashboard`).
