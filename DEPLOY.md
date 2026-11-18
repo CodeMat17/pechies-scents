@@ -86,8 +86,11 @@ Open http://localhost:8787 and check the home page, a product page and `/dashboa
 
 ### Step 7. Deploy
 ```bash
-yarn deploy
+yarn deploy:win   # on Windows
+yarn deploy       # on macOS / Linux / WSL
 ```
+On Windows, use `yarn deploy:win`. `yarn deploy` fails there with `Couldn't find the binary wrangler`, because OpenNext calls `yarn exec wrangler`, which Yarn 1 can't resolve on Windows. `deploy:win` ([scripts/deploy-windows.mjs](scripts/deploy-windows.mjs)) does the same build and upload without `yarn exec`. Add `--dry-run` to test without uploading.
+
 This builds the site (about 2 minutes) and uploads it. When it finishes it prints the live URL:
 `https://pechies-scents.<your-subdomain>.workers.dev`
 
@@ -117,8 +120,10 @@ The sitemap, canonical links and social previews use `SITE_URL` in `lib/store.ts
 
 ```bash
 yarn convex deploy   # only if anything in convex/ changed
-yarn deploy          # build + upload the site
+yarn deploy:win      # build + upload the site (Windows; use `yarn deploy` elsewhere)
 ```
+
+If auto-deploy from GitHub is set up (below), `git push` replaces this step.
 
 Products and the hero image edited in `/dashboard` save straight to Convex and show up on the live site immediately. You don't need to redeploy for those.
 
@@ -146,6 +151,8 @@ Convex changes still need `yarn convex deploy` from your machine.
 - **Dashboard login or image upload fails:** the Convex **production** env vars from step 3 are missing.
 - **"Could not find public function" errors:** you changed `convex/` but didn't run `yarn convex deploy`.
 - **`EPERM: operation not permitted ... esbuild.exe` during install/build:** `yarn dev` or `npx convex dev` is still running. Stop them and retry.
+- **`error Couldn't find the binary wrangler` on `yarn deploy`:** Yarn 1 on Windows. Use `yarn deploy:win`.
+- **Build variables don't take effect:** in Cloudflare, `NEXT_PUBLIC_*` must be under **Settings → Builds → Variables and secrets**, not under **Runtime variables and secrets** at the top of Settings.
 - **`error Command "dlx" not found`:** you're on Yarn 1. Use `npx` instead.
 - **`Authentication error` from wrangler:** run `yarn wrangler login` again.
 - **Custom domain option is missing:** the Worker only appears in Workers & Pages after the first `yarn deploy`.
