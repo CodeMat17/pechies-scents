@@ -17,6 +17,8 @@
     "NEXT_PUBLIC_CONVEX_URL": "https://wonderful-goose-297.convex.cloud",
     "NEXT_PUBLIC_WHATSAPP_NUMBER": "2349064981301",
   },
+  // Cloudflare Images: re-encodes the share card (opengraph-image) from PNG to JPEG
+  "images": { "binding": "IMAGES" },
   "services": [
     {
       // Self-reference binding; "service" must match "name" above

@@ -402,7 +402,7 @@ function Hero({
 
       <div className="relative mx-auto grid max-w-7xl gap-10 px-5 pt-8 pb-12 md:grid-cols-[1.1fr_0.9fr] md:items-center md:gap-16 md:px-6 md:pt-10 md:pb-14">
         <div>
-          <p className="eyebrow animate-rise">Fragrance House · Nigeria</p>
+          <p className="eyebrow animate-rise">Fragrance House · Delivering across Nigeria</p>
           <h1 className="mt-4 animate-rise font-serif text-[3.3rem] leading-[0.95] font-medium tracking-[-0.01em] [animation-delay:80ms] sm:text-7xl md:mt-6 md:text-[5.5rem]">
             {first}.
             <br />

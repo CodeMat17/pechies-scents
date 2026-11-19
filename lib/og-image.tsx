@@ -7,6 +7,7 @@
  */
 import { ImageResponse } from "next/og";
 import { fetchQuery } from "convex/nextjs";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { api } from "@/convex/_generated/api";
 import { SITE_NAME, SITE_URL, TAGLINE, type Product } from "@/lib/store";
 
@@ -76,8 +77,20 @@ async function loadImage(url: string, w: number, h: number): Promise<string | nu
   }
 }
 
-/** Load a Google font (TTF) subset to just the characters drawn. */
-async function loadFont(family: string, weight: number, italic: boolean, text: string) {
+/** Load a Google font (TTF) subset to just the characters drawn. Cached per worker instance. */
+const fontCache = new Map<string, Promise<ArrayBuffer>>();
+function loadFont(family: string, weight: number, italic: boolean, text: string) {
+  const key = `${family}|${weight}|${italic}|${text}`;
+  let p = fontCache.get(key);
+  if (!p) {
+    p = fetchFont(family, weight, italic, text);
+    p.catch(() => fontCache.delete(key));
+    fontCache.set(key, p);
+  }
+  return p;
+}
+
+async function fetchFont(family: string, weight: number, italic: boolean, text: string) {
   const params = `family=${family.replace(/ /g, "+")}:ital,wght@${italic ? 1 : 0},${weight}&text=${encodeURIComponent(text)}`;
   const css = await (await fetch(`https://fonts.googleapis.com/css2?${params}`)).text();
   const src = css.match(/src: url\((.+?)\) format\('(opentype|truetype)'\)/)?.[1];
@@ -85,7 +98,38 @@ async function loadFont(family: string, weight: number, italic: boolean, text: s
   return (await fetch(src)).arrayBuffer();
 }
 
+/** Minimal shape of the Cloudflare Images binding (wrangler.jsonc → "images"). */
+type ImagesBinding = {
+  input(stream: ReadableStream<Uint8Array>): {
+    output(opts: { format: string; quality?: number }): Promise<{ image(): ReadableStream<Uint8Array> }>;
+  };
+};
+
+/**
+ * The card is a PNG, and a PNG with a photo in it is ~550 KB, too heavy for WhatsApp,
+ * which silently drops previews over ~300 KB. Re-encode it as JPEG (~60–100 KB) with the
+ * Cloudflare Images binding. Falls back to the PNG (e.g. in `next dev`) if that fails.
+ */
+async function toJpeg(png: Response): Promise<Response> {
+  const fallback = png.clone();
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const images = (env as unknown as { IMAGES?: ImagesBinding }).IMAGES;
+    if (!images || !png.body) return fallback;
+    const jpeg = await images.input(png.body).output({ format: "image/jpeg", quality: 82 });
+    return new Response(jpeg.image(), {
+      headers: { "content-type": "image/jpeg", "cache-control": "public, max-age=3600" },
+    });
+  } catch {
+    return fallback;
+  }
+}
+
 export async function renderOgImage() {
+  return toJpeg(await renderPng());
+}
+
+async function renderPng() {
   const [first, second] = TAGLINE.replace(/\.$/, "").split(". ");
   const eyebrow = "FRAGRANCE HOUSE · NIGERIA";
   const blurb = "Oud, oil perfumes, body mists & sprays — order in seconds on WhatsApp.";
